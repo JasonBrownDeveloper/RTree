@@ -28,14 +28,14 @@ struct RTNodeList {
 struct RTNode;
 typedef struct RTNode * RTreePtr;
 
-bool RTNew(RTreePtr *T, struct RTNodeList *list);
-bool RTFree(RTreePtr *T);
-
-bool RTSelect(RTreePtr *T, RTdimension S[], struct RTNodeList **list, size_t *count);
-bool RTInsert(RTreePtr *T, RTdimension I[], void *Tuple);
-bool RTDelete(RTreePtr *T, RTdimension I[], void *Tuple);
+bool RTNewTree(RTreePtr *T, struct RTNodeList *list);
+bool RTSelectTuple(RTreePtr *T, RTdimension S[], struct RTNodeList **list, size_t *count);
+bool RTSelectDimensions(RTreePtr *T, RTdimension I[]);
+bool RTInsertTuple(RTreePtr *T, RTdimension I[], void *Tuple);
+bool RTDeleteTuple(RTreePtr *T, RTdimension I[], void *Tuple);
 bool RTUpdateTuple(RTreePtr *T, RTdimension I[], void *Tuple, void *New);
-bool RTUpdateDimension(RTreePtr *T, RTdimension I[], void *Tuple, RTdimension New[]);
+bool RTUpdateDimensions(RTreePtr *T, RTdimension I[], void *Tuple, RTdimension New[]);
+bool RTFreeTree(RTreePtr *T);
 
 #ifdef RTREE_DEBUG
 bool RTTrace(struct RTNode *Start, size_t Level, size_t AbsChild, struct RTNode **Out);

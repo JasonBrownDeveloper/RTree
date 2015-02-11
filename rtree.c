@@ -83,8 +83,8 @@ static bool Within(RTdimension *S1, RTdimension *S2) {
 static long double safe_multiply(long double left, long double right) {
    int sign = 1;
    if (left == 0 || right == 0) return 0;
-   if (left < 0) { left = -left; sign = -sign;}
-   if (right < 0) { right = -right; sign = -sign;}
+   if (left < 0) {left = -left; sign = -sign;}
+   if (right < 0) {right = -right; sign = -sign;}
    if (LDBL_MAX / right < left) {
       fputs("fatal: long double overflow\n", stderr);
       exit(EXIT_FAILURE);
@@ -106,7 +106,8 @@ static long double Volume(RTdimension *S) {
 }
 
 /*Sets the Tuple of a Node*/
-bool RTUpdateTuple(RTreePtr *T, RTdimension I[], void *Tuple, void *New) {
+/*In: Parent Node, Size, Tuple, New Tuple */
+bool UpdateTuple(RTreePtr *T, RTdimension I[], void *Tuple, void *New) {
    struct RTNode *L = NULL;
    RTchildindex pos = 0;
 
@@ -120,7 +121,8 @@ bool RTUpdateTuple(RTreePtr *T, RTdimension I[], void *Tuple, void *New) {
 }
 
 /*Sets the Dimensions of a node*/
-bool RTUpdateDimension(RTreePtr *T, RTdimension I[], void *Tuple, RTdimension New[]) {
+/*In: Parent Node, Size, Tuple, New Dimension */
+bool RTUpdateDimensions(RTreePtr *T, RTdimension I[], void *Tuple, RTdimension New[]) {
    struct RTNode *L = NULL;
    RTchildindex pos = 0;
 
@@ -139,8 +141,14 @@ bool RTUpdateDimension(RTreePtr *T, RTdimension I[], void *Tuple, RTdimension Ne
    return true;
 }
 
+/*Gets the Dimensions of an RTree*/
+bool RTSelectDimensions(RTreePtr *T, RTdimension I[]) {
+   memcpy(I, (*T)->I, sizeof((*T)->I));
+   return true;
+}
+
 /*Creates a new Tree*/
-bool RTNew(struct RTNode **T, struct RTNodeList *list) {
+bool RTNewTree(struct RTNode **T, struct RTNodeList *list) {
    size_t i, j, k;
    struct RTNodeList *nodelist;
    struct RTNode *node;
@@ -246,7 +254,7 @@ static bool FreeNodes(struct RTNode *T) {
 }
 
 /*Frees a Tree*/
-bool RTFree(RTreePtr *T) {
+bool RTFreeTree(RTreePtr *T) {
    if (!T || !*T)
       return true;
 
@@ -261,7 +269,7 @@ bool RTFree(RTreePtr *T) {
 /*3.1 Searching*/
 /*Algorithm Search*/
 /*In: Parent Node, Search Box  Out: Hit List, Hit Count*/
-bool RTSelect(RTreePtr *T, RTdimension S[], struct RTNodeList **list, size_t *count) {
+bool RTSelectTuple(RTreePtr *T, RTdimension S[], struct RTNodeList **list, size_t *count) {
    if (!T || !*T) {
       fputs("RTree cannot be NULL.\n", stderr);
       return false;
@@ -323,8 +331,8 @@ static bool Search(struct RTNode *T, RTdimension S[], struct RTNodeList **list, 
 
 /*3.2 Insertion*/
 /*Algorithm Insert*/
-/*In: Parent Node, Size, Tuple  Out: Root Node*/
-bool RTInsert(RTreePtr *N, RTdimension I[], void *Tuple) {
+/*In: Parent Node, Size, Tuple */
+bool RTInsertTuple(RTreePtr *N, RTdimension I[], void *Tuple) {
    if (!N || !*N) {
       fputs("RTree cannot be NULL.\n", stderr);
       return false;
@@ -548,7 +556,8 @@ static bool AdjustTree(struct RTNode *N, struct RTNode *NN, struct RTNode **root
    return AdjustTree(P, NN, root, split);
 }
 
-bool RTDelete(RTreePtr *T, RTdimension I[], void *Tuple) {
+/*In: Parent Node, Dead Size, Dead Tuple */
+bool RTDeleteTuple(RTreePtr *T, RTdimension I[], void *Tuple) {
    if (I == NULL || Tuple == NULL) {
       fputs("Must have Size and Tuple.\n", stderr);
       return false;
@@ -559,7 +568,7 @@ bool RTDelete(RTreePtr *T, RTdimension I[], void *Tuple) {
 
 /*3.3 Deletion*/
 /*Algorithm Delete*/
-/*In: Parent Node, Dead Size, Dead Tuple  Out: New Root*/
+/*In: Parent Node, Dead Size, Dead Tuple */
 static bool Delete(struct RTNode **T, RTdimension I[], void *Tuple) {
    struct RTNode *L = NULL, *newRoot = NULL;
    RTchildindex i, pos = 0;
@@ -604,7 +613,7 @@ static bool Delete(struct RTNode **T, RTdimension I[], void *Tuple) {
 }
 
 /*Algorithm FindLeaf*/
-/*In: Parent Node, Dead Size, Dead Tuple  Out: Leaf Node, Tuple Position*/
+/*In: Parent Node, Size, Tuple  Out: Leaf Node, Position*/
 static bool FindLeaf(struct RTNode *T, RTdimension I[], void *Tuple, struct RTNode **L, RTchildindex *position) {
    RTchildindex i;
 
@@ -915,7 +924,7 @@ bool RTTrace(struct RTNode *Start, size_t Level, size_t AbsChild, struct RTNode 
    size_t count, group, place, last, factor;
 
    last = 0;
-   for (; Level > 0; Level--) {
+   for ( ; Level > 0; Level--) {
       count = (size_t)pow(M, Level);
       group = count / M;
       place = group + last;
