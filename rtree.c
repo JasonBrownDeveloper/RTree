@@ -5,7 +5,7 @@
 #include "rtree.h"
 
 #define m 2                        /*minimum children; sizeof childindex*/
-#define M RTPS / sizeof(struct RTreeNode) /*maximum children; sizeof childindex*/
+#define M (RTPS / sizeof(struct RTNode)) /*maximum children; sizeof childindex*/
 
 #define LEVEL_TOP -1
 #define LEVEL_LEAF 1
@@ -212,10 +212,6 @@ bool RTNew(struct RTNode **T, struct RTNodeList *list) {
       InitNodes((*T)->Child, M);
    }
 
-#ifdef RTREE_DEBUG
-   fprintf(stderr, "M %d\n", M);
-#endif
-
    return true;
 }
 
@@ -251,6 +247,9 @@ static bool FreeNodes(struct RTNode *T) {
 
 /*Frees a Tree*/
 bool RTFree(RTreePtr *T) {
+   if (!T || !*T)
+      return true;
+
    if (!FreeNodes(*T))
       return false;
 
@@ -352,8 +351,9 @@ static bool Insert(struct RTNode **N, size_t Level, RTdimension I[], void *Tuple
    if (TupleNode)
       Size = TupleNode->I;
 #ifdef RTREE_DEBUG
-   else {
+   else if (!Tuple) {
       fputs("rtree on fire!\n", stderr);
+      *N = NULL;
       return false;
    }
 #endif
@@ -387,6 +387,7 @@ static bool Insert(struct RTNode **N, size_t Level, RTdimension I[], void *Tuple
 #ifdef RTREE_DEBUG
          else {
             fputs("rtree on fire!\n", stderr);
+            *N = NULL;
             return false;
          }
 #endif
@@ -626,7 +627,8 @@ static bool FindLeaf(struct RTNode *T, RTdimension I[], void *Tuple, struct RTNo
       return true;
 
    /*FL2 [Search leaf node for record]*/
-   } else if (IS_LEAF(T)) {
+   /*Property (5) - Root and Leaf*/
+   } else if (IS_LEAF(T) || IS_EMPTY(T->Child[0])) {
       for (i = 0; i < M && !IS_EMPTY(T->Child[i]); ++i)
          if (T->Child[i].Tuple == Tuple && !memcmp(T->Child[i].I, I, sizeof(T->Child[i].I))) {
             *L = T;
@@ -951,22 +953,23 @@ bool RTDump(struct RTNode *Start, const char *filename) {
 
    for (level = 0, curr = Start; curr; ++level, curr = curr->Child);
 
-   max = (size_t)pow(M, level - 1) * 10;
-   pad = (char *)mem_alloc((max / 2 - 4) * sizeof(char));
-   memset(pad, ' ', (max / 2 - 5) * sizeof(pad[0]));
-   pad[(max / 2 - 5)] = '\0';
-   fprintf(log, "%s %p %s\n", pad, Start, pad);
+   max = (size_t)pow(M, level - 1) * 16;
+   pad = (char *)mem_alloc((max / 2 - 8) * sizeof(char) + 1);
+   memset(pad, ' ', (max / 2 - 8) * sizeof(pad[0]));
+   pad[(max / 2 - 8)] = '\0';
+
+   fprintf(log, "%s %14p %s\n", pad, Start, pad);
    for(k = 0; k < RTn*2; ++k) {
-      fprintf(log, "%s %d-%6d %s\n", pad, k, Start->I[k], pad);
+      fprintf(log, "%s %d-%12d %s\n", pad, k, Start->I[k], pad);
    }
-   fprintf(log, "%s %p %s\n", pad, Start->Parent, pad);
-   fprintf(log, "%s %p %s\n", pad, Start->Child, pad);
-   fprintf(log, "%s %p %s\n\n", pad, Start->Tuple, pad);
+   fprintf(log, "%s %14p %s\n", pad, Start->Parent, pad);
+   fprintf(log, "%s %14p %s\n", pad, Start->Child, pad);
+   fprintf(log, "%s %14p %s\n\n", pad, Start->Tuple, pad);
 
    for (i = 1; i < level; ++i) {
-      size = (max / (int)pow(M, i) - 10);
-      pad[size] = '\0';
       cnt = (size_t)pow(M, i);
+      size = (max / cnt - 16);
+      pad[size] = '\0';
 
       for (j = 0; j < cnt; ++j) {
          if (!trace(Start, i, j, &curr)) {
@@ -977,9 +980,9 @@ bool RTDump(struct RTNode *Start, const char *filename) {
             pad[size/2] = '\0';
 
          if(curr)
-            fprintf(log, "%s %8p ", pad, curr);
+            fprintf(log, "%s %14p ", pad, curr);
          else
-            fprintf(log, "%s XXXXXXXX ", pad);
+            fprintf(log, "%s XXXXXXXXXXXXXX ", pad);
 
          if (j == 0 && size > 0)
             pad[size/2] = ' ';
@@ -1002,9 +1005,9 @@ bool RTDump(struct RTNode *Start, const char *filename) {
                pad[size/2] = '\0';
 
             if(curr)
-               fprintf(log, "%s %d-%6d ", pad, k, curr->I[k]);
+               fprintf(log, "%s %d-%12d ", pad, k, curr->I[k]);
             else
-               fprintf(log, "%s XXXXXXXX ", pad);
+               fprintf(log, "%s XXXXXXXXXXXXXX ", pad);
 
             if (j == 0 && size > 0)
                pad[size/2] = ' ';
@@ -1027,9 +1030,9 @@ bool RTDump(struct RTNode *Start, const char *filename) {
             pad[size/2] = '\0';
 
          if(curr)
-            fprintf(log, "%s %8p ", pad, curr->Parent);
+            fprintf(log, "%s %14p ", pad, curr->Parent);
          else
-            fprintf(log, "%s XXXXXXXX ", pad);
+            fprintf(log, "%s XXXXXXXXXXXXXX ", pad);
 
          if (j == 0 && size > 0)
             pad[size/2] = ' ';
@@ -1051,9 +1054,9 @@ bool RTDump(struct RTNode *Start, const char *filename) {
             pad[size/2] = '\0';
 
          if(curr)
-            fprintf(log, "%s %8p ", pad, curr->Child);
+            fprintf(log, "%s %14p ", pad, curr->Child);
          else
-            fprintf(log, "%s XXXXXXXX ", pad);
+            fprintf(log, "%s XXXXXXXXXXXXXX ", pad);
 
          if (j == 0 && size > 0)
             pad[size/2] = ' ';
@@ -1075,9 +1078,9 @@ bool RTDump(struct RTNode *Start, const char *filename) {
             pad[size/2] = '\0';
 
          if(curr)
-            fprintf(log, "%s %8p ", pad, curr->Tuple);
+            fprintf(log, "%s %14p ", pad, curr->Tuple);
          else
-            fprintf(log, "%s XXXXXXXX ", pad);
+            fprintf(log, "%s XXXXXXXXXXXXXX ", pad);
 
          if (j == 0 && size > 0)
             pad[size/2] = ' ';

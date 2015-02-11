@@ -26,7 +26,7 @@ struct RTNodeList {
 };
 
 struct RTNode;
-#define RTreePtr struct RTNode *
+typedef struct RTNode * RTreePtr;
 
 bool RTNew(RTreePtr *T, struct RTNodeList *list);
 bool RTFree(RTreePtr *T);
