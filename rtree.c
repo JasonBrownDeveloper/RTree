@@ -55,6 +55,7 @@ static void *mem_alloc(size_t size) {
       fputs("fatal: out of memory.\n", stderr);
       exit(EXIT_FAILURE);
    }
+   memset(mem, 0, size);
    return mem;
 }
 
@@ -142,6 +143,7 @@ bool RTUpdateDimensions(RTreePtr *T, RTdimension I[], void *Tuple, RTdimension N
 }
 
 /*Gets the Dimensions of an RTree*/
+/*In: Parent Node  Out: Size */
 bool RTSelectDimensions(RTreePtr *T, RTdimension I[]) {
    memcpy(I, (*T)->I, sizeof((*T)->I));
    return true;
@@ -149,6 +151,7 @@ bool RTSelectDimensions(RTreePtr *T, RTdimension I[]) {
 
 /*Creates a new Tree*/
 bool RTNewTree(struct RTNode **T, struct RTNodeList *list) {
+   RTchildindex h;
    size_t i, j, k;
    struct RTNodeList *nodelist;
    struct RTNode *node;
@@ -196,6 +199,10 @@ bool RTNewTree(struct RTNode **T, struct RTNodeList *list) {
 
             memcpy(node->Child+i, branch, sizeof(node->Child[i]));
             node->Child[i].Parent = node;
+
+            if (node->Child[i].Child != NULL)
+               for (h = 0; h < M && !IS_EMPTY(node->Child[i].Child[h]); ++h)
+                  node->Child[i].Child[h].Parent = node->Child+i;
 
             for (j = 0, k = RTn; j < RTn; ++j, ++k) {
                node->I[j] = node->I[j] < branch->I[j] ? node->I[j] : branch->I[j];
