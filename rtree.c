@@ -252,7 +252,7 @@ static bool FreeNodes(struct RTNode *T) {
       free(T->Child);
       return true;
    /*Property (5) - Root and Leaf*/
-   } else if (IS_LEAF(T) || IS_EMPTY(T->Child[0])) {
+   } else if (IS_LEAF(T) || ((T->Child && IS_EMPTY(T->Child[0])))) {
       free(T->Child);
       return true;
    }
@@ -315,7 +315,7 @@ static bool Search(struct RTNode *T, RTdimension S[], struct RTNodeList **list, 
 
    /*S2 [Search leaf node]*/
    /*Property (5) - Root and Leaf*/
-   } else if (IS_LEAF(T) || IS_EMPTY(T->Child[0])) {
+   } else if (IS_LEAF(T) || ((T->Child) && IS_EMPTY(T->Child[0]))) {
       for (i = 0; i < M && !IS_EMPTY(T->Child[i]); ++i)
          if (Overlap(T->Child[i].I, S)) {
             if (list) {
@@ -645,7 +645,7 @@ static bool FindLeaf(struct RTNode *T, RTdimension I[], void *Tuple, struct RTNo
 
    /*FL2 [Search leaf node for record]*/
    /*Property (5) - Root and Leaf*/
-   } else if (IS_LEAF(T) || IS_EMPTY(T->Child[0])) {
+   } else if (IS_LEAF(T) || ((T->Child) && IS_EMPTY(T->Child[0]))) {
       for (i = 0; i < M && !IS_EMPTY(T->Child[i]); ++i)
          if (T->Child[i].Tuple == Tuple && !memcmp(T->Child[i].I, I, sizeof(T->Child[i].I))) {
             *L = T;
