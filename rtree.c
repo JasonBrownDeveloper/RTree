@@ -108,7 +108,7 @@ static long double Volume(RTdimension *S) {
 
 /*Sets the Tuple of a Node*/
 /*In: Parent Node, Size, Tuple, New Tuple */
-bool UpdateTuple(RTreePtr *T, RTdimension I[], void *Tuple, void *New) {
+bool RTUpdateTuple(RTreePtr *T, RTdimension I[], void *Tuple, void *New) {
    struct RTNode *L = NULL;
    RTchildindex pos = 0;
 
@@ -150,6 +150,7 @@ bool RTSelectDimensions(RTreePtr *T, RTdimension I[]) {
 }
 
 /*Creates a new Tree*/
+/*Out: Root Node  In: Nodes for bulk loading */
 bool RTNewTree(struct RTNode **T, struct RTNodeList *list) {
    RTchildindex h;
    size_t i, j, k;
@@ -455,7 +456,7 @@ static bool Insert(struct RTNode **N, size_t Level, RTdimension I[], void *Tuple
 
 /*Algorithm ChooseLeaf*/
 /*CL1 [Initialize]*/
-/*In: Parent Node, Tuple Size  Out: Chosen Leaf*/
+/*In: Parent Node, Parent Level, Leaf Level, Tuple Size  Out: Chosen Leaf*/
 static bool ChooseLeaf(struct RTNode *N, size_t Start, size_t Stop, RTdimension *I, struct RTNode **leaf) {
    RTchildindex i = 0;
    RTdimensionindex j = 0, k = 0;
@@ -737,8 +738,14 @@ static bool CondenseTree(struct RTNode *N, struct RTNode **root) {
 #ifdef RTREE_DEBUG
       if (IS_TUPLE(Q->Node) || IS_LEAF(Q->Node) || IS_BRANCH(Q->Node)) {
 #endif
-         if (!Insert(&N, Q->level, NULL, NULL, Q->Node))
+         if (!Insert(&N, Q->level, NULL, NULL, Q->Node)) {
+            for ( ; Q != NULL; Q = next) {
+               next = Q->Next;
+               free(Q->Node);
+               free(Q);
+            }
             return false;
+          }
 #ifdef RTREE_DEBUG
       } else {
          fputs("rtree on fire!\n", stderr);
